@@ -1,35 +1,33 @@
-name: Publish
-
+name: release
 on:
   push:
+    branches:
+    - main_ish
     tags:
-      - '*'
+    - '*'
 
 jobs:
-  publish:
-    name: Publish for ${{ matrix.os }}
+  release:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         include:
-          - os: ubuntu-latest
-            asset_name: handlr
+        - os: ubuntu-latest
+          asset_name: handlr
 
     steps:
-    - uses: hecrj/setup-rust-action@v2
-      with:
-        rust-version: stable
-
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
+    - uses: dtolnay/rust-toolchain@stable
 
     - name: Test
       run: cargo test
 
-    - name: Build
+    - name: build
       run: cargo build --release --locked
 
-    - name: Strip binary
-      run: strip target/release/handlr
+    # rust build already strips (because `strip = true`)
+    # - name: Strip binary
+    #   run: strip target/release/handlr
 
     - name: Upload binaries to release
       uses: svenstaro/upload-release-action@v2
@@ -38,3 +36,4 @@ jobs:
         file: target/release/handlr
         asset_name: ${{ matrix.asset_name }}
         tag: ${{ github.ref }}
+    
