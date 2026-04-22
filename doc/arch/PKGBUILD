@@ -1,0 +1,56 @@
+# https://gitlab.archlinux.org/archlinux/packaging/packages/handlr-regex/-/blob/main/PKGBUILD?ref_type=heads
+_pkgname="handlr"
+pkgname="${_pkgname}-regex-booksbaum-git"
+# -> pkgver()
+pkgver=v0.13.0.r31.1240a72
+pkgrel=1
+pkgdesc="Powerful alternative to xdg-utils written in Rust"
+arch=('x86_64')
+url="https://github.com/Booksbaum/handlr-regex"
+license=('MIT')
+
+conflicts=("${_pkgname}" "${_pkgname}-regex")
+replaces=("${_pkgname}" "${_pkgname}-regex")
+provides=("${_pkgname}")
+depends=('shared-mime-info')
+makedepends=('cargo' 'git')
+
+source=("${pkgname}::git+https://github.com/Booksbaum/handlr-regex#branch=main_ish")
+sha256sums=('SKIP')
+
+pkgver() {
+    cd "$pkgname"
+    # source: /usr/share/pacman/PKGBUILD-vcs.proto
+    printf "%s" "$(git describe --long --tags | sed 's/\([^-]*-\)g/r\1/;s/-/./g')"
+}
+
+build() {
+  cd "$pkgname"
+
+  cargo build --release --frozen
+
+  mkdir -p completions
+  COMPLETE=bash target/release/$_pkgname >"completions/$_pkgname"
+  COMPLETE=fish target/release/$_pkgname >"completions/$_pkgname.fish"
+  COMPLETE=zsh target/release/$_pkgname >"completions/_$_pkgname"
+  echo "$PWD/target/release/$_pkgname|/usr/bin/$_pkgname"
+    for f in completions/*; do
+      sed -i "s|$PWD/target/release/$_pkgname|/usr/bin/$_pkgname|g" "$f"
+    done
+}
+
+check() {
+  cd "$pkgname"
+  cargo test --frozen
+}
+
+
+package() {
+  cd "$pkgname"
+  install -Dm 755 "target/release/$_pkgname" -t "$pkgdir/usr/bin"
+  install -Dm 644 README.md -t "$pkgdir/usr/share/doc/$pkgname"
+  install -Dm 644 LICENSE -t "$pkgdir/usr/share/licenses/$pkgname"
+  install -Dm 644 "completions/$_pkgname" -t "$pkgdir/usr/share/bash-completion/completions"
+  install -Dm 644 "completions/$_pkgname.fish" -t "$pkgdir/usr/share/fish/vendor_completions.d"
+  install -Dm 644 "completions/_$_pkgname" -t "$pkgdir/usr/share/zsh/site-functions"
+}
